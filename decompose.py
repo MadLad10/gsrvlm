@@ -94,13 +94,30 @@ def loo_mras(df):
     return out
 
 
+def compression(df):
+    """Slope of log(pred) on log(gt) (= 1 + slope_b), plus the reverse-regression
+    value 1 / slope(log gt on log pred). Noise in the GT labels biases the forward
+    slope toward 0 (looks like more compression) and the reverse value away from
+    it, so with label noise only, the true slope lies between the two."""
+    d = df[df["ok"]]
+    if len(d) < 3:
+        return np.nan, np.nan
+    x, y = np.log(d["gt"].values), np.log(d["pred"].values)
+    fwd = np.polyfit(x, y, 1)[0]
+    rev = np.polyfit(y, x, 1)[0]
+    return float(fwd), float(1 / rev) if rev != 0 else np.nan
+
+
 def analyse(df, n_boot):
     d, b = add_resid(df)
+    fwd, rev = compression(d)
     res = {
         "n": int(len(d)), "n_scenes": int(d["scene_id"].nunique()),
         "unparseable_rate": float(1 - d["ok"].mean()),
         "mra_all": float(d["mra"].mean()),
         "slope_b": b,
+        "slope_pred_on_gt": fwd,
+        "slope_pred_on_gt_reverse_bound": rev,
         "share_naive_raw": naive_share(d, "e"),
         "icc_raw": icc1(d, "e"),
         "icc_resid": icc1(d, "r"),
@@ -108,6 +125,7 @@ def analyse(df, n_boot):
     }
     res["mra"] = loo_mras(d)
     if n_boot:
+        res["slope_pred_on_gt_ci"] = scene_bootstrap(d, lambda x: compression(x)[0], n_boot)
         res["icc_raw_ci"] = scene_bootstrap(d, lambda x: icc1(x, "e"), n_boot)
         res["icc_resid_ci"] = scene_bootstrap(d, lambda x: icc1(add_resid(x)[0], "r"), n_boot)
 
@@ -163,7 +181,7 @@ def main():
         m = r["mra"]
         loo_gain = m.get("scene_loo", np.nan) - m.get("base", np.nan)
         extra = m.get("scene_loo_res", np.nan) - m.get("global", np.nan)
-        go = (r["icc_raw"] >= 0.4) or (loo_gain >= 0.05)
+        go = bool((r["icc_raw"] >= 0.4) or (loo_gain >= 0.05))
         rep["go_no_go"] = {"icc_raw": r["icc_raw"], "icc_resid": r["icc_resid"],
                            "scene_loo_gain_over_base": loo_gain,
                            "scene_resid_gain_over_global": extra,

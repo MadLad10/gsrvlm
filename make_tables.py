@@ -18,7 +18,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from decompose import add_resid, loo_mras
+from decompose import add_resid, compression, loo_mras
 from scalehint import ROOT_DEFAULTS, TASKS, data, results
 from scalehint.metrics import scene_bootstrap
 
@@ -57,8 +57,11 @@ def table1(n_boot):
             b = base[(base["task"] == t) & base["qid"].isin(d["qid"])]
             pair = d.merge(b[["qid", "mra"]], on="qid", suffixes=("", "_b"))
             pair["delta"] = pair["mra"] - pair["mra_b"]
+            slope = lambda x: compression(x)[0]
             rows.append({
                 "condition": c, "task": t, "n": len(d),
+                "slope": slope(d), "slope_ci": scene_bootstrap(d, slope, n_boot),
+                "slope_base": slope(b),
                 "mra": d["mra"].mean(),
                 "mra_ci": scene_bootstrap(d, lambda x: x["mra"].mean(), n_boot),
                 "delta": pair["delta"].mean() if c != "baseline" else np.nan,
@@ -74,15 +77,19 @@ def table1(n_boot):
             m = loo_mras(d)
             if m:
                 rows.append({"condition": "LOO scene rescale (bound)", "task": t, "n": m["n"],
+                             "slope": np.nan, "slope_ci": None, "slope_base": np.nan,
                              "mra": m["scene_loo"], "mra_ci": None,
                              "delta": m["scene_loo"] - m["base"], "delta_ci": None,
                              "unparse": np.nan})
     md = ["## Table 1: MRA (x100) on eval scenes; delta is paired vs baseline on the same questions\n",
-          "| condition | task | n | MRA [95% CI] | Δ vs base [95% CI] | unparseable |",
-          "|---|---|---|---|---|---|"]
+          "Compression slope = slope of log(pred) on log(gt): 1 = proportional, 0 = constant answer. "
+          "'base' = baseline slope on the same questions.\n",
+          "| condition | task | n | MRA [95% CI] | Δ vs base [95% CI] | slope [95% CI] | slope base | unparseable |",
+          "|---|---|---|---|---|---|---|---|"]
     for r in rows:
         md.append(f"| {r['condition']} | {SHORT[r['task']]} | {r['n']} | {fmt(r['mra'], r['mra_ci'])} | "
-                  f"{fmt(r['delta'], r['delta_ci'])} | {fmt(r['unparse'])} |")
+                  f"{fmt(r['delta'], r['delta_ci'])} | {fmt(r['slope'], r['slope_ci'], pct=False)} | "
+                  f"{fmt(r['slope_base'], pct=False)} | {fmt(r['unparse'])} |")
     return "\n".join(md) + "\n", rows
 
 
@@ -93,11 +100,13 @@ def table2():
     with open(p) as f:
         D = json.load(f)
     md = [f"## Table 2: error decomposition ({D['condition']}, all scenes)\n",
-          "| task | n | slope b | ICC raw [CI] | ICC resid [CI] | MRA base | global | scene LOO | scene LOO resid |",
-          "|---|---|---|---|---|---|---|---|---|"]
+          "| task | n | compression slope [CI] | reverse bound | ICC raw [CI] | ICC resid [CI] | MRA base | global | scene LOO | scene LOO resid |",
+          "|---|---|---|---|---|---|---|---|---|---|"]
     for t, r in D["tasks"].items():
         m = r.get("mra", {})
-        md.append(f"| {t} | {r['n']} | {fmt(r['slope_b'], pct=False)} | "
+        md.append(f"| {t} | {r['n']} | "
+                  f"{fmt(r.get('slope_pred_on_gt', np.nan), r.get('slope_pred_on_gt_ci'), pct=False)} | "
+                  f"{fmt(r.get('slope_pred_on_gt_reverse_bound', np.nan), pct=False)} | "
                   f"{fmt(r['icc_raw'], r.get('icc_raw_ci'), pct=False)} | "
                   f"{fmt(r['icc_resid'], r.get('icc_resid_ci'), pct=False)} | "
                   f"{fmt(m.get('base'))} | {fmt(m.get('global'))} | {fmt(m.get('scene_loo'))} | "

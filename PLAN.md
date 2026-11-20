@@ -19,6 +19,28 @@ Kaggle runs the VLM (`notebooks/vlm.ipynb`); a second session (Colab) runs MapAn
 7. **MRA uses `<=`** (as in the official VSI-Bench code), not `<`.
 8. **T4 dtypes.** VLM: fp16 with an automatic finite-logit check that falls back to bf16. MapAnything: bf16 always (fp16 → all-NaN on Turing, measured in ThriftSplat).
 
+### 0b. E0 result: NO-GO on scene scale → pivot (2026-11-20)
+
+Baseline, Qwen3-VL-4B, all scenes (`results/decomposition.json`):
+
+| task | n | MRA | ICC raw / resid | scene-LOO vs base MRA | log pred ~ log gt slope |
+|---|---|---|---|---|---|
+| abs distance | 834 | 0.44 | 0.10 / 0.14 | 0.42 vs 0.45 (hurts) | 0.53 |
+| object size | 953 | 0.74 | ≈0 / ≈0 | 0.65 vs 0.73 (hurts) | 0.87 |
+| room size | 288 | 0.55 | n/a (1 q/scene) | n/a | 0.52 |
+
+Cross-task Spearman of scene-mean residuals: −0.05 / 0.08 / 0.20, so scenes are not mis-scaled consistently across tasks.
+
+**New framing:** *"Metric errors in frozen VLMs are magnitude compression, not scene-scale misperception."* Answers grow roughly like gt^0.5 for distance and room size: short distances and small rooms are overestimated, long ones underestimated. Object size, which semantic priors cover, is nearly proportional.
+
+- **H1 is answered negatively.** This is the decomposition result: scene-shared error is small and doesn't transfer across tasks.
+- **New H2: does a metric cue undo the compression?** Measure per condition the MRA *and* the compression slope (Table 1). A cue that helps should push the slope toward 1, not just shift answers.
+- **H3 (elasticity) stays.** Does the model use the cue at all, and does it copy the number?
+- **H4 (predictor) is dropped.** There's no scene scale to predict. It's optional only if time remains.
+- **Label-noise caveat.** Noisy GT biases the forward slope toward 0. Report the reverse-regression bound next to it (`slope_pred_on_gt_reverse_bound`); with noise only in GT, the true slope lies between the two.
+
+**Run list, in priority order** (about 28 min per condition on one T4): `anchor`, `placebo`, `anchor_k0.5`, `anchor_k2`, `spatialprompt` (100 q/task), then after the teacher: `teacher`, `shuffled`, `teacher_k0.5`, `teacher_k2`.
+
 Drop order if behind (replaces §6): predictor/`learned` → `teacher_ext` → k = 0.71/1.41 (both sources) → `spatialprompt`. Never drop E2 or E5.
 
 ---
