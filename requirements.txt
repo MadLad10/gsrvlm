@@ -1,0 +1,11 @@
+# torch comes preinstalled on Kaggle and Colab; do not reinstall it.
+# Qwen3-VL needs transformers >= 4.57. Capped below 5 so the API stays the one this code was written against.
+transformers>=4.57.1,<5
+accelerate
+datasets
+huggingface_hub
+opencv-python-headless
+pillow
+numpy
+pandas
+matplotlib

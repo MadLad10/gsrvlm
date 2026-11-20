@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+cache/frames/
+cache/qwen_vis/
+cache/frame_failures.json
+third_party/
+logs/
+*.zip
+# keep: data/questions.jsonl, splits/, cache/teacher_scale*.json,
+# cache/learned_scale.json, results/, figures/
