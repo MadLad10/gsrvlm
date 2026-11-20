@@ -12,9 +12,11 @@ since every VSI-Bench question names its unit.
 
 import re
 
-_UNIT = (r"(square\s+met(?:er|re)s?|sq\.?\s*m|m\^?2|m²|square\s+feet|sq\.?\s*ft|ft\^?2|ft²"
+# One capture group, so the "?" appended below makes the whole unit optional.
+# (?![a-z]) instead of \b: \b fails after "²", which is not a word character.
+_UNIT = (r"((?:square\s+met(?:er|re)s?|sq\.?\s*m|m\^?2|m²|square\s+feet|sq\.?\s*ft|ft\^?2|ft²"
          r"|centimet(?:er|re)s?|cm|millimet(?:er|re)s?|mm|met(?:er|re)s?|m"
-         r"|feet|foot|ft|inch(?:es)?)\b")
+         r"|feet|foot|ft|inch(?:es)?)(?![a-z]))")
 _NUM = r"(\d+(?:\.\d+)?)"
 _RANGE = re.compile(_NUM + r"\s*(?:-|–|to)\s*" + _NUM + r"\s*" + _UNIT + "?", re.I)
 _SINGLE = re.compile(_NUM + r"\s*" + _UNIT + "?", re.I)
