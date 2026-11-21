@@ -96,6 +96,10 @@ def main():
         qs = [q for q in qs if q["scene_id"] in L]
         for q in qs:
             hint[q["qid"]] = L[q["scene_id"]] * k
+    elif src == "answer":
+        # positive control: can the model use a number written in the prompt at all?
+        for q in qs:
+            hint[q["qid"]] = q["gt"] * k
     elif src == "anchor":
         A = data.anchor_table(data.load_questions(a.questions))
         qs = [q for q in qs if q["qid"] in A]
@@ -150,7 +154,7 @@ def main():
             h = hint.get(q["qid"])
             prompt, reasoning = prompts.build_prompt(
                 q["question"], src, hint=h, extent=extent.get(q["qid"]),
-                anchor_obj=anchor_obj.get(q["qid"]))
+                anchor_obj=anchor_obj.get(q["qid"]), unit=TASKS[q["task"]])
             mnt = a.max_new_tokens or (512 if reasoning else 32)
             t0 = time.time()
             raw = vlm.answer(model, proc, frames, prompt, max_new_tokens=mnt)

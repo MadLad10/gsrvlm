@@ -1,0 +1,64 @@
+{
+ "object_abs_distance": {
+  "qid": "4704",
+  "scene": "scannet__scene0648_00",
+  "question": "Measuring from the closest point of each object, what is the distance between the closet and the window (in meters)?",
+  "gt": 2.7,
+  "preds": {
+   "baseline": 2.0,
+   "teacher0.5": 2.0,
+   "teacher1": 2.0,
+   "teacher2": 2.0,
+   "anchor0.5": 2.0,
+   "anchor1": 2.0,
+   "anchor2": 2.0,
+   "answer0.5": 1.4,
+   "answer1": 1.7,
+   "answer2": 1.7
+  },
+  "hints": {
+   "baseline": null,
+   "teacher0.5": 0.439453125,
+   "teacher1": 0.87890625,
+   "teacher2": 1.7578125,
+   "anchor0.5": 57.0,
+   "anchor1": 114.0,
+   "anchor2": 228.0,
+   "answer0.5": 1.35,
+   "answer1": 2.7,
+   "answer2": 5.4
+  },
+  "anchor_obj": "bookshelf"
+ },
+ "room_size_estimation": {
+  "qid": "2696",
+  "scene": "scannetpp__5942004064",
+  "question": "What is the size of this room (in square meters)? \nIf multiple rooms are shown, estimate the size of the combined space.",
+  "gt": 26.5,
+  "preds": {
+   "baseline": 20.3,
+   "teacher0.5": 18.0,
+   "teacher1": 18.0,
+   "teacher2": 18.0,
+   "anchor0.5": 20.3,
+   "anchor1": 20.7,
+   "anchor2": 20.7,
+   "answer0.5": 13.2,
+   "answer1": 26.5,
+   "answer2": 53.0
+  },
+  "hints": {
+   "baseline": null,
+   "teacher0.5": 0.66015625,
+   "teacher1": 1.3203125,
+   "teacher2": 2.640625,
+   "anchor0.5": 108.0,
+   "anchor1": 216.0,
+   "anchor2": 432.0,
+   "answer0.5": 13.25,
+   "answer1": 26.5,
+   "answer2": 53.0
+  },
+  "anchor_obj": "sofa"
+ }
+}

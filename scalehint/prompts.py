@@ -22,7 +22,7 @@ SPATIAL = ("Before answering, pick one or more reference objects in the video wh
            "real-world size you know well, estimate their size, and use them as a "
            "ruler to measure what is asked.")
 
-_COND = re.compile(r"(baseline|placebo|spatialprompt|teacher_ext|teacher|shuffled|learned|anchor)"
+_COND = re.compile(r"(baseline|placebo|spatialprompt|teacher_ext|teacher|shuffled|learned|anchor|answer)"
                    r"(?:_k(\d+(?:\.\d+)?))?$")
 
 K_LEVELS = [0.5, 0.71, 1.41, 2.0]
@@ -34,8 +34,8 @@ def parse_condition(name):
         raise ValueError(f"unknown condition {name!r}")
     src = m.group(1)
     k = float(m.group(2)) if m.group(2) else 1.0
-    if m.group(2) and src not in ("teacher", "anchor", "learned"):
-        raise ValueError(f"_k only applies to teacher/anchor/learned, got {name!r}")
+    if m.group(2) and src not in ("teacher", "anchor", "learned", "answer"):
+        raise ValueError(f"_k only applies to teacher/anchor/learned/answer, got {name!r}")
     return src, k
 
 
@@ -49,10 +49,21 @@ def anchor_line(obj, cm):
             f"longest dimension.")
 
 
-def build_prompt(question, src, hint=None, extent=None, anchor_obj=None):
+UNIT_WORDS = {"m": "m", "cm": "cm", "m2": "square meters"}
+
+
+def answer_line(x, unit):
+    """Positive control: the ground-truth answer (times k) stated directly."""
+    fmt = f"{x:.0f}" if unit == "cm" else f"{x:.1f}"
+    return f"Hint: the correct answer is approximately {fmt} {UNIT_WORDS[unit]}."
+
+
+def build_prompt(question, src, hint=None, extent=None, anchor_obj=None, unit=None):
     """Returns (prompt, reasoning?)."""
     lines = []
-    if src in ("teacher", "shuffled", "learned"):
+    if src == "answer":
+        lines.append(answer_line(hint, unit))
+    elif src in ("teacher", "shuffled", "learned"):
         lines.append(depth_line(hint))
     elif src == "teacher_ext":
         lines.append(depth_line(hint) + f" The scene spans about {extent:.1f} m.")
